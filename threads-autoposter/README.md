@@ -26,27 +26,3 @@ Two things to know before trusting it:
 back to their comments by index. Don't put anything between those two that
 reorders or drops items.
 
-## Setup
-
-Import, then put the Query Auth credential into the four `graph.threads.com`
-nodes and the Header Auth one into `Generate reply`. Set the timezone under the
-three dots, Settings, Timezone, and paste in the same playbook the poster uses.
-
-Before activating, run `Extract reply` with Execute step and read the `reply`
-column. The three nodes after it post for real. The first scheduled run answers
-everything it finds up to `maxRepliesPerRun`, so on an account with a backlog,
-turn that down first.
-
-## Config fields
-
-- `playbook`, the same text the poster uses
-- `model`, claude-sonnet-5-5. One call per comment, so cost tracks volume
-- `maxReplyChars`, 180. A comment reply is a sentence or two
-- `maxRepliesPerRun`, 25, oldest comments first
-- `replyWindowDays`, 14, only posts newer than this get scanned
-- `scanPosts`, 25
-
-## API
-
-Same app as the poster, plus the scopes `threads_manage_replies` and
-`threads_read_replies`. 1000 replies per 24h.
