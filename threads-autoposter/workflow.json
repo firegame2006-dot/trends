@@ -1,0 +1,427 @@
+{
+  "name": "Threads autoposter",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            },
+            {
+              "triggerAtHour": 19
+            }
+          ]
+        }
+      },
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-0",
+              "name": "playbook",
+              "type": "string",
+              "value": "# Account playbook\n\nThis text is sent to the model as a system prompt before every post and every\nreply. Edit it to match the account; the next run picks the changes up.\n\n## Who I am\n\nDescribe yourself in a paragraph: what you do, why anyone should listen, and\nthe voice you write in. Write it the way you would say it out loud.\n\n## Who I write for\n\n- **Reader:** who they are\n- **Their problem:** what wears them down\n- **What I offer:** the product or service\n- **Where I send them:** the link in my profile bio. I never write a handle or\n  a URL in the text, only \"the link in my profile\"\n\n## How the account works\n\n1. **Hook** - a post about something the reader recognises. Nothing is sold.\n2. **Offer** - the next post picks up the same problem and says, in one closing\n   line, that there is something I can do about it.\n3. **Comments** - answer like a person. Mention the offer only to someone who\n   asked for it.\n\nA hook without an offer collects likes and nothing else. An offer without a\nhook is an ad people scroll past. Only the pair works.\n\n## Topics\n\nList the things you can write about from experience. One topic per post.\n\n## Voice\n\n- plain spoken, the way people actually talk\n- one idea per post\n- no corporate phrasing\n- calm and sure of itself, no outrage\n- at most one emoji, and only when it earns its place\n\n## Post shape\n\n1. First line hooks: a situation the reader recognises from the first word\n2. One or two short lines: the point\n3. Last line: a question worth answering from experience\n\n## One line of thought\n\nThe account is one person talking over months, not a pile of unrelated posts.\n\n- do not repeat a topic from the recent posts\n- build on what was already written where it fits\n- if a hook started an argument, the next post can open with what people said\n- an offer post always attaches to the problem raised by the previous hook\n\n## Hard rules\n\n- no hashtags\n- no prices, rates, bonuses or concrete terms; those belong in a direct\n  conversation\n- no invented cases, names, companies, figures or statistics\n- no promises about paperwork, housing or outcomes\n- no legal, tax or medical advice: say it has to be looked at case by case\n- never write as an AI or mention that the text was generated\n- no mention of the offer in hook posts, only in offer posts, and only in the\n  closing line\n- no handles, no addresses, no links; the link is already in the profile\n- do not close every post with the same sentence\n- no urgency: no \"two spots left\", no \"hurry\"\n- keep it short: if it fits in three lines, do not write six\n\n## Replying to comments\n\nBy default nothing is offered. Just answer as someone who knows the subject.\n\n- answer the actual comment, not the topic in general\n- very short: one sentence, two at most, no preamble and no summary\n- same voice as the posts; reply in the language of the comment\n- take criticism calmly and concede where the person is right\n- answer a question directly instead of deflecting to DMs\n- do not repeat the post and do not thank people by template\n- if someone shared their experience, keep the conversation going and stop there\n\n### When an invitation is allowed\n\nOnly when the person showed interest themselves:\n\n- asks about the offer, the terms, what is available\n- says they are looking or want to change something\n- describes their situation and asks what to do\n- asks whether you can help\n\nThen: answer the question first, for free and briefly, and only after that\ninvite them in one sentence, pointing at the link in the profile. No handle,\nno address, no figures in public.\n\nIf someone merely agreed, joked, complained or told a story, offer nothing.\nThis is the most common mistake and it costs the account trust faster than\nanything else.\n\n### When not to reply\n\nSpam, ads for other services, insults, bait, or a bare emoji with no content:\ndo not reply. Return exactly one word: SKIP"
+            },
+            {
+              "id": "field-1",
+              "name": "postTypes",
+              "type": "string",
+              "value": "Hook: the problem - name one concrete thing that wears the reader down, and say out loud what people usually put up with in silence. No mention of the offer. End on a question worth answering with an example.\nOffer after the problem - start from the problem raised in the previous post and explain, calmly, that it can be arranged differently. No figures, no terms. Close with one quiet line saying what is currently available is behind the link in my profile.\nHook: how it actually works - explain the mechanics the reader never gets to see. They should finish the post thinking that it finally makes sense. Nothing is offered.\nOffer by comparison - show the difference between the bad version and a normal one, using the topic of the previous hook. No company names, no figures. Close by pointing at the link in my profile.\nHook: the uncomfortable truth - say something half the readers will disagree with. Being argued with in the comments is the point. Nothing is offered.\nOffer, plainly - no build-up: this is what I do, this is what I check before anyone commits, and this is what it takes. One paragraph, no pressure. Close with where to write: the link in my profile."
+            },
+            {
+              "id": "field-2",
+              "name": "model",
+              "type": "string",
+              "value": "claude-opus-5-5"
+            },
+            {
+              "id": "field-3",
+              "name": "historyPosts",
+              "type": "number",
+              "value": 12
+            },
+            {
+              "id": "field-4",
+              "name": "maxPostChars",
+              "type": "number",
+              "value": 280
+            },
+            {
+              "id": "field-5",
+              "name": "replyControl",
+              "type": "string",
+              "value": "everyone"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "url": "https://graph.threads.com/v1.0/me/threads",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,text,timestamp"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $('Config').first().json.historyPosts }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Fetch recent posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const limit = Number($('Config').first().json.historyPosts) || 12;\n\nconst out = ($input.first().json.data || [])\n  .filter((p) => p.id && (p.text || '').trim())\n  .slice(0, limit)\n  .map((p) => ({\n    json: { postId: p.id, text: (p.text || '').trim(), timestamp: p.timestamp || '' },\n  }));\n\n// Empty account: emit one blank item so the chain still reaches the first post.\nif (!out.length) return [{ json: { postId: '', text: '', timestamp: '' } }];\n\nreturn out;\n"
+      },
+      "name": "Split posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "url": "=https://graph.threads.com/v1.0/{{ $json.postId }}/insights",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "metric",
+              "value": "views,likes,replies,reposts,quotes"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Fetch insights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        460
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst maxChars = Number(cfg.maxPostChars) || 280;\n\n// Both nodes emit one item per post in the same order, so indexes line up.\nconst posts = $('Split posts').all().map((it) => it.json);\nconst stats = $input.all().map((it) => it.json);\n\nconst history = posts\n  .map((p, i) => {\n    const metrics = {};\n    for (const m of (stats[i] && stats[i].data) || []) {\n      const v = m.values && m.values[0] ? m.values[0].value : null;\n      if (typeof v === 'number') metrics[m.name] = v;\n    }\n    return {\n      date: (p.timestamp || '').slice(0, 10),\n      text: p.text || '',\n      likes: metrics.likes,\n      replies: metrics.replies,\n      hasStats: Object.keys(metrics).length > 0,\n      score:\n        (metrics.likes || 0) + (metrics.replies || 0) * 3 + (metrics.reposts || 0) * 3,\n    };\n  })\n  .filter((h) => h.text);\n\nconst label = (h) =>\n  h.hasStats ? ` [likes: ${h.likes || 0}, replies: ${h.replies || 0}]` : '';\n\nconst best = history\n  .filter((h) => h.hasStats && h.score > 0)\n  .sort((a, b) => b.score - a.score)\n  .slice(0, 3);\n\n// Rotation comes from the clock, not a counter: workflow static data is not\n// persisted on manual runs. 43200000 ms = 12 h = one slot.\nconst types = String(cfg.postTypes || '')\n  .split('\\n')\n  .map((l) => l.trim())\n  .filter((l) => l && !l.startsWith('#') && !l.startsWith('>'));\n\nconst postType = types.length\n  ? types[Math.floor(Date.now() / 43200000) % types.length]\n  : '';\n\nconst system = [\n  cfg.playbook,\n  '---',\n  'PLATFORM LIMITS, these override everything above:',\n  `- No longer than ${maxChars} characters including spaces.`,\n  '- No markdown: no **, no ##, no bullet lists, no bracketed links.',\n  '- No hashtags, no links, no @handles. The offer is referred to only as \"the link in my profile\", and only when the post type calls for it. Hook posts never mention it.',\n  '- Return ONLY the post text: no preamble, no title, no surrounding quotes.',\n].join('\\n');\n\nconst parts = [`Today is ${new Date().toISOString().slice(0, 10)}.`, ''];\n\nif (postType) parts.push('POST TYPE FOR TODAY - ' + postType, '');\n\nif (history.length) {\n  parts.push(\n    'MY RECENT POSTS, newest first:',\n    history.map((h) => `- ${h.date}${label(h)}\\n${h.text}`).join('\\n\\n'),\n    '',\n    'HOW TO USE THEM:',\n    '- Do not repeat these topics and do not open with the same first line.',\n    '- This is one account with one line of thought. Build on what I already wrote where it fits, but not in every post.',\n    '- A post with noticeably more replies means the topic is alive and can be revisited from another angle.',\n    '- If today is an offer, attach it to the problem raised by the most recent hook. If one hook drew far more response than the rest, use that one instead.',\n    '',\n  );\n} else {\n  parts.push(\n    'This is the first post on the account, there is no history yet.',\n    'Do not refer back to anything, even if the post type calls for it.',\n    '',\n  );\n}\n\nif (best.length) {\n  parts.push(\n    'POSTS WITH THE MOST RESPONSE. Follow their FORM: how the first line is built, the length, the kind of closing question. Not their topic.',\n    best.map((h, i) => `${i + 1}.${label(h)} ${h.text}`).join('\\n'),\n    '',\n  );\n}\n\nparts.push('Write the next post.');\n\nreturn [{\n  json: {\n    model: cfg.model,\n    max_tokens: 4000,\n    output_config: { effort: 'medium' },\n    fallbacks: 'default',\n    system,\n    messages: [{ role: 'user', content: parts.join('\\n') }],\n  },\n}];\n"
+      },
+      "name": "Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "server-side-fallback-2026-07-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "name": "Generate post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\n\nif (res.stop_reason === 'refusal') {\n  const d = res.stop_details || {};\n  throw new Error('The model refused this post: ' + (d.explanation || 'no explanation'));\n}\n\nlet text = (res.content || [])\n  .filter((b) => b.type === 'text')\n  .map((b) => b.text)\n  .join('\\n')\n  .trim();\n\nif (!text) throw new Error('Empty response from the model.');\n\nconst maxChars = Number($('Config').first().json.maxPostChars) || 280;\n\ntext = text\n  .replace(/^```[a-z]*\\n?|```$/gim, '')\n  .replace(/^[\\u0022\\u00AB\\u201C\\u201E\\u0027]+|[\\u0022\\u00BB\\u201D\\u2018\\u0027]+$/g, '')\n  .replace(/\\*\\*(.+?)\\*\\*/g, '$1')\n  .replace(/^#{1,6}\\s+/gm, '')\n  .replace(/^Post\\s*:\\s*/i, '')\n  .trim();\n\nif (text.length > maxChars) {\n  // Cut on a sentence boundary rather than mid-word.\n  const cut = text.slice(0, maxChars);\n  const stop = Math.max(\n    cut.lastIndexOf('.'),\n    cut.lastIndexOf('!'),\n    cut.lastIndexOf('?'),\n    cut.lastIndexOf('\\n'),\n  );\n  text = (stop > maxChars * 0.5 ? cut.slice(0, stop + 1) : cut).trim();\n}\n\nreturn [{ json: { text, length: text.length } }];\n"
+      },
+      "name": "Extract text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "method": "POST",
+        "url": "https://graph.threads.com/v1.0/me/threads",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "TEXT"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "reply_control",
+              "value": "={{ $('Config').first().json.replyControl }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Create container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2016,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "method": "POST",
+        "url": "https://graph.threads.com/v1.0/me/threads_publish",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Publish post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "url": "=https://graph.threads.com/v1.0/{{ $json.id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "permalink"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Fetch permalink",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        460
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch recent posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch recent posts": {
+      "main": [
+        [
+          {
+            "node": "Split posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split posts": {
+      "main": [
+        [
+          {
+            "node": "Fetch insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch insights": {
+      "main": [
+        [
+          {
+            "node": "Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate post": {
+      "main": [
+        [
+          {
+            "node": "Extract text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract text": {
+      "main": [
+        [
+          {
+            "node": "Create container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create container": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Publish post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish post": {
+      "main": [
+        [
+          {
+            "node": "Fetch permalink",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

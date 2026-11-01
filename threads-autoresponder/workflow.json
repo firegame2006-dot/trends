@@ -1,0 +1,427 @@
+{
+  "name": "Threads autoresponder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtMinute": 25
+            }
+          ]
+        }
+      },
+      "name": "Hourly schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-0",
+              "name": "playbook",
+              "type": "string",
+              "value": "# Account playbook\n\nThis text is sent to the model as a system prompt before every post and every\nreply. Edit it to match the account; the next run picks the changes up.\n\n## Who I am\n\nDescribe yourself in a paragraph: what you do, why anyone should listen, and\nthe voice you write in. Write it the way you would say it out loud.\n\n## Who I write for\n\n- **Reader:** who they are\n- **Their problem:** what wears them down\n- **What I offer:** the product or service\n- **Where I send them:** the link in my profile bio. I never write a handle or\n  a URL in the text, only \"the link in my profile\"\n\n## How the account works\n\n1. **Hook** - a post about something the reader recognises. Nothing is sold.\n2. **Offer** - the next post picks up the same problem and says, in one closing\n   line, that there is something I can do about it.\n3. **Comments** - answer like a person. Mention the offer only to someone who\n   asked for it.\n\nA hook without an offer collects likes and nothing else. An offer without a\nhook is an ad people scroll past. Only the pair works.\n\n## Topics\n\nList the things you can write about from experience. One topic per post.\n\n## Voice\n\n- plain spoken, the way people actually talk\n- one idea per post\n- no corporate phrasing\n- calm and sure of itself, no outrage\n- at most one emoji, and only when it earns its place\n\n## Post shape\n\n1. First line hooks: a situation the reader recognises from the first word\n2. One or two short lines: the point\n3. Last line: a question worth answering from experience\n\n## One line of thought\n\nThe account is one person talking over months, not a pile of unrelated posts.\n\n- do not repeat a topic from the recent posts\n- build on what was already written where it fits\n- if a hook started an argument, the next post can open with what people said\n- an offer post always attaches to the problem raised by the previous hook\n\n## Hard rules\n\n- no hashtags\n- no prices, rates, bonuses or concrete terms; those belong in a direct\n  conversation\n- no invented cases, names, companies, figures or statistics\n- no promises about paperwork, housing or outcomes\n- no legal, tax or medical advice: say it has to be looked at case by case\n- never write as an AI or mention that the text was generated\n- no mention of the offer in hook posts, only in offer posts, and only in the\n  closing line\n- no handles, no addresses, no links; the link is already in the profile\n- do not close every post with the same sentence\n- no urgency: no \"two spots left\", no \"hurry\"\n- keep it short: if it fits in three lines, do not write six\n\n## Replying to comments\n\nBy default nothing is offered. Just answer as someone who knows the subject.\n\n- answer the actual comment, not the topic in general\n- very short: one sentence, two at most, no preamble and no summary\n- same voice as the posts; reply in the language of the comment\n- take criticism calmly and concede where the person is right\n- answer a question directly instead of deflecting to DMs\n- do not repeat the post and do not thank people by template\n- if someone shared their experience, keep the conversation going and stop there\n\n### When an invitation is allowed\n\nOnly when the person showed interest themselves:\n\n- asks about the offer, the terms, what is available\n- says they are looking or want to change something\n- describes their situation and asks what to do\n- asks whether you can help\n\nThen: answer the question first, for free and briefly, and only after that\ninvite them in one sentence, pointing at the link in the profile. No handle,\nno address, no figures in public.\n\nIf someone merely agreed, joked, complained or told a story, offer nothing.\nThis is the most common mistake and it costs the account trust faster than\nanything else.\n\n### When not to reply\n\nSpam, ads for other services, insults, bait, or a bare emoji with no content:\ndo not reply. Return exactly one word: SKIP"
+            },
+            {
+              "id": "field-1",
+              "name": "model",
+              "type": "string",
+              "value": "claude-sonnet-5-5"
+            },
+            {
+              "id": "field-2",
+              "name": "maxReplyChars",
+              "type": "number",
+              "value": 180
+            },
+            {
+              "id": "field-3",
+              "name": "maxRepliesPerRun",
+              "type": "number",
+              "value": 25
+            },
+            {
+              "id": "field-4",
+              "name": "maxThreadDepth",
+              "type": "number",
+              "value": 2
+            },
+            {
+              "id": "field-5",
+              "name": "replyWindowDays",
+              "type": "number",
+              "value": 14
+            },
+            {
+              "id": "field-6",
+              "name": "scanPosts",
+              "type": "number",
+              "value": 25
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "url": "https://graph.threads.com/v1.0/me/threads",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,text,timestamp"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $('Config').first().json.scanPosts }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Fetch my posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const days = Number($('Config').first().json.replyWindowDays) || 14;\nconst cutoff = Date.now() - days * 24 * 60 * 60 * 1000;\n\nreturn ($input.first().json.data || [])\n  .filter((p) => p.id)\n  .filter((p) => !p.timestamp || new Date(p.timestamp).getTime() >= cutoff)\n  .map((p) => ({ json: { postId: p.id, postText: p.text || '' } }));\n"
+      },
+      "name": "Filter posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "url": "=https://graph.threads.com/v1.0/{{ $json.postId }}/conversation",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,text,username,timestamp,is_reply_owned_by_me,hide_status,replied_to,root_post"
+            },
+            {
+              "name": "reverse",
+              "value": "false"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Fetch conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        460
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Whether a comment was already handled is read back from Threads rather than\n// kept locally: /conversation returns the whole thread, and every reply of\n// ours carries replied_to.\nconst posts = {};\nfor (const item of $('Filter posts').all()) {\n  posts[item.json.postId] = item.json.postText;\n}\n\n// The only local state: comments the model declined to answer, so they are not\n// sent to it again every hour. Losing this state costs nothing.\nconst store = $getWorkflowStaticData('global');\nstore.skipped = store.skipped || {};\n\nconst cfg = $('Config').first().json;\nconst maxPerRun = Number(cfg.maxRepliesPerRun) || 25;\nconst maxDepth = Number(cfg.maxThreadDepth) || 2;\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const all = item.json.data || [];\n\n  const byId = {};\n  for (const r of all) if (r.id) byId[r.id] = r;\n\n  const answered = new Set(\n    all\n      .filter((r) => r.is_reply_owned_by_me === true && r.replied_to && r.replied_to.id)\n      .map((r) => r.replied_to.id),\n  );\n\n  // How many times we already spoke higher up this chain. Without a cap,\n  // anyone who keeps replying can keep the account talking indefinitely.\n  const ownRepliesAbove = (c) => {\n    let n = 0;\n    let cur = c;\n    for (let hop = 0; hop < 50; hop++) {\n      const parentId = cur.replied_to && cur.replied_to.id;\n      cur = parentId ? byId[parentId] : null;\n      if (!cur) break;\n      if (cur.is_reply_owned_by_me === true) n += 1;\n    }\n    return n;\n  };\n\n  for (const c of all) {\n    if (!c.id) continue;\n    if (c.is_reply_owned_by_me === true) continue;\n    if (c.hide_status === 'HIDDEN') continue;\n    if (!c.text || !c.text.trim()) continue;\n    if (answered.has(c.id)) continue;\n    if (store.skipped[c.id]) continue;\n\n    const depth = ownRepliesAbove(c);\n    if (depth >= maxDepth) continue;\n\n    const rootId = c.root_post && c.root_post.id ? c.root_post.id : null;\n\n    out.push({\n      json: {\n        commentId: c.id,\n        username: c.username || '',\n        commentText: c.text.trim(),\n        timestamp: c.timestamp || '',\n        postText: rootId && posts[rootId] !== undefined ? posts[rootId] : '',\n        lastInThread: depth === maxDepth - 1,\n      },\n    });\n  }\n}\n\n// Oldest first, so nobody waits longer than anyone else.\nout.sort(\n  (a, b) =>\n    new Date(a.json.timestamp || 0).getTime() - new Date(b.json.timestamp || 0).getTime(),\n);\n\nreturn out.slice(0, maxPerRun);\n"
+      },
+      "name": "Select unanswered",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst maxChars = Number(cfg.maxReplyChars) || 180;\n\nconst system = [\n  cfg.playbook,\n  '---',\n  'YOUR TASK: write a reply to a comment on one of my posts.',\n  'LIMITS:',\n  `- No longer than ${maxChars} characters.`,\n  '- No markdown. Return ONLY the reply text, without quotes.',\n  '- Do not address the person with @, Threads already shows this is a reply.',\n  '- If the playbook says this comment should not be answered, return exactly: SKIP',\n].join('\\n');\n\nreturn $input.all().map((item) => {\n  const content = [\n    'MY POST:',\n    item.json.postText || '(no text)',\n    '',\n    `COMMENT from @${item.json.username || 'unknown'}:`,\n    item.json.commentText,\n    '',\n    'Write a reply to this comment.',\n  ];\n\n  if (item.json.lastInThread) {\n    content.push(\n      '',\n      'This is the last reply I will send in this thread. Round it off: answer what was asked, point at the link in my profile if the person showed interest, and do not ask a question back.',\n    );\n  }\n\n  return {\n    json: {\n      model: cfg.model,\n      max_tokens: 2000,\n      output_config: { effort: 'low' },\n      fallbacks: 'default',\n      system,\n      messages: [{ role: 'user', content: content.join('\\n') }],\n    },\n  };\n});\n"
+      },
+      "name": "Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "server-side-fallback-2026-07-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "name": "Generate reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1568,
+        460
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One model response per comment, in the same order as 'Select unanswered'.\nconst source = $('Select unanswered').all();\nconst maxChars = Number($('Config').first().json.maxReplyChars) || 180;\n\nconst store = $getWorkflowStaticData('global');\nstore.skipped = store.skipped || {};\n\nconst out = [];\n\n$input.all().forEach((item, i) => {\n  const res = item.json || {};\n  const src = source[i] ? source[i].json : {};\n  if (!src.commentId) return;\n\n  // A failed or refused request is skipped silently and retried next run,\n  // since no reply was posted to Threads either way.\n  if (res.error || res.stop_reason === 'refusal') return;\n\n  let text = (res.content || [])\n    .filter((b) => b.type === 'text')\n    .map((b) => b.text)\n    .join('\\n')\n    .trim();\n\n  if (!text) return;\n\n  text = text\n    .replace(/^```[a-z]*\\n?|```$/gim, '')\n    .replace(/^[\\u0022\\u00AB\\u201C\\u201E\\u0027]+|[\\u0022\\u00BB\\u201D\\u2018\\u0027]+$/g, '')\n    .replace(/\\*\\*(.+?)\\*\\*/g, '$1')\n    .replace(/^#{1,6}\\s+/gm, '')\n    .trim();\n\n  if (/^SKIP\\b/i.test(text)) {\n    store.skipped[src.commentId] = new Date().toISOString();\n    return;\n  }\n\n  if (text.length > maxChars) {\n    const cut = text.slice(0, maxChars);\n    const stop = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));\n    text = (stop > maxChars * 0.5 ? cut.slice(0, stop + 1) : cut).trim();\n  }\n\n  out.push({ json: { commentId: src.commentId, username: src.username, reply: text } });\n});\n\nconst keys = Object.keys(store.skipped);\nif (keys.length > 2000) {\n  for (const k of keys.slice(0, keys.length - 2000)) delete store.skipped[k];\n}\n\nreturn out;\n"
+      },
+      "name": "Extract reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "method": "POST",
+        "url": "https://graph.threads.com/v1.0/me/threads",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "TEXT"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.reply }}"
+            },
+            {
+              "name": "reply_to_id",
+              "value": "={{ $json.commentId }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Create reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "method": "POST",
+        "url": "https://graph.threads.com/v1.0/me/threads_publish",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth"
+      },
+      "name": "Publish reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch my posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch my posts": {
+      "main": [
+        [
+          {
+            "node": "Filter posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter posts": {
+      "main": [
+        [
+          {
+            "node": "Fetch conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch conversation": {
+      "main": [
+        [
+          {
+            "node": "Select unanswered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select unanswered": {
+      "main": [
+        [
+          {
+            "node": "Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate reply": {
+      "main": [
+        [
+          {
+            "node": "Extract reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract reply": {
+      "main": [
+        [
+          {
+            "node": "Create reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create reply": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Publish reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
